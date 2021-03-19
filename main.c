@@ -204,7 +204,7 @@ unsigned char LedCount;
 
 unsigned char WaitInfoATimeOut;
 unsigned char ResetFlag;
-unsigned int ResetInCount;
+unsigned int ResetInCount = 0;
 
 /* Variables for POWER EN & POWER BTN */
 unsigned char PowerPulseCountDown;
@@ -451,6 +451,26 @@ unsigned char WDIDetect(void)
     }
 }
 
+/*
+ * Reset In
+ */
+void ResetInDetect(void)
+{
+	if((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
+	{
+		while((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
+		{
+			delay_ms(1);
+			if(ResetInCount < 1000)
+				ResetInCount++;
+			if(ResetInCount >= 1000)
+				POWEREN_INACTIVE;
+		}
+		ResetInCount = 0;
+		POWEREN_ACTIVE;
+	}
+}
+
 
 /*
  * WDTDetect.c
@@ -581,454 +601,431 @@ void I2CProceed(void)
  */
 void main(void)
 {
-    /* Stop watchdog timer */
-    WDTCTL = WDTPW | WDTHOLD;
+	/* Stop watchdog timer */
+	WDTCTL = WDTPW | WDTHOLD;
 
-    /* I/O pin initialization */
-    IOInit();
+	/* I/O pin initialization */
+	IOInit();
 
-    /* Set DCO to 1MHz */
-    SetDCO(DCO_1MHZ);
+	/* Set DCO to 1MHz */
+	SetDCO(DCO_1MHZ);
 
-    /* delay a while for DCO stable */
-    __delay_cycles(5000);
+	/* delay a while for DCO stable */
+	__delay_cycles(5000);
 
-    /* Calibrate VLO by DCO */
-    VLO50msCount = CalibrateVLO();
-    /* Calculate 50ms for VLO */
-    VLO50msCount = 50000 / VLO50msCount;
+	/* Calibrate VLO by DCO */
+	VLO50msCount = CalibrateVLO();
+	/* Calculate 50ms for VLO */
+	VLO50msCount = 50000 / VLO50msCount;
 
-    /* Set DCO to 16MHz */
-    SetDCO(DCO_16MHZ);
+	/* Set DCO to 16MHz */
+	SetDCO(DCO_16MHZ);
 
-    /* delay a while for DCO stable */
-//  __delay_cycles(5000);
+	/* delay a while for DCO stable */
+	//  __delay_cycles(5000);
 
-    /* Timer initialization */
-    TimerInit();
+	/* Timer initialization */
+	TimerInit();
 
-    /* I2C initialization */
-    I2CInit();
+	/* I2C initialization */
+	I2CInit();
 
-    /* Initial global variables */
-    I2CState = I2C_IDLE;
-    I2CRegister = 0;
-    pI2Cdata = (unsigned char *)&NullData;
+	/* Initial global variables */
+	I2CState = I2C_IDLE;
+	I2CRegister = 0;
+	pI2Cdata = (unsigned char *)&NullData;
 
-    /* Start Watchdog */
-    WDTCTL = WDT_ARST_250;
+	/* Start Watchdog */
+	WDTCTL = WDT_ARST_250;
 
-    /* Global Interrupt Enable */
-    __enable_interrupt();
+	/* Global Interrupt Enable */
+	__enable_interrupt();
 
-    while (1)
-    {
-        ResetCount = 0;
-        ResetFlag = 0;
-        ResetInCount = 0;
-        PowerPulseCountDown = 0;
-        PowerButton = PWR_BUTTON_IDLE;
-        Count50ms = 0;
-        WDITrigger = 0;
-        I2CCmd[0] = 0;
-        I2CCmd[1] = 0;
-        I2CCmd[2] = 0;
-//      ActiveResetCount = RST_COUNT;
-//      I2CResetCount[0] = RST_COUNT;
-//      I2CResetCount[1] = 0xFF;
-        I2CPreTime[0] = 0;
-        I2CPreTime[1] = 0;
-        I2CPreTime[2] = 0xFF;
-        I2CPreTimeRemain[0] = 0;
-        I2CPreTimeRemain[1] = 0;
-        I2CPreTimeRemain[2] = 0xFF;
-        I2CResetTimeOut[0] = RST_TIME_OUT & 0xFF;
-        I2CResetTimeOut[1] = RST_TIME_OUT >> 8;
-        I2CResetTimeOut[2] = 0xFF;
-        I2CResetTimeOutRemain[0] = RST_TIME_OUT & 0xFF;
-        I2CResetTimeOutRemain[1] = RST_TIME_OUT >> 8;
-        I2CResetTimeOutRemain[2] = 0xFF;
-        ActivePreTime = I2CPreTime[1];
-        ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
-        ActivePreTime--;
-        ActiveResetTimeOut = I2CResetTimeOut[1];
-        ActiveResetTimeOut = I2CResetTimeOut[0] + (ActiveResetTimeOut << 8);
-        ResetCountDown = ActiveResetTimeOut - 1;
-        WDICountDown = WDI_DELAY_TIME - 1;
+	while (1)
+	{
+		ResetCount = 0;
+		ResetFlag = 0;
+		ResetInCount = 0;
+		PowerPulseCountDown = 0;
+		PowerButton = PWR_BUTTON_IDLE;
+		Count50ms = 0;
+		WDITrigger = 0;
+		I2CCmd[0] = 0;
+		I2CCmd[1] = 0;
+		I2CCmd[2] = 0;
+//		ActiveResetCount = RST_COUNT;
+//		I2CResetCount[0] = RST_COUNT;
+//		I2CResetCount[1] = 0xFF;
+		I2CPreTime[0] = 0;
+		I2CPreTime[1] = 0;
+		I2CPreTime[2] = 0xFF;
+		I2CPreTimeRemain[0] = 0;
+		I2CPreTimeRemain[1] = 0;
+		I2CPreTimeRemain[2] = 0xFF;
+		I2CResetTimeOut[0] = RST_TIME_OUT & 0xFF;
+		I2CResetTimeOut[1] = RST_TIME_OUT >> 8;
+		I2CResetTimeOut[2] = 0xFF;
+		I2CResetTimeOutRemain[0] = RST_TIME_OUT & 0xFF;
+		I2CResetTimeOutRemain[1] = RST_TIME_OUT >> 8;
+		I2CResetTimeOutRemain[2] = 0xFF;
+		ActivePreTime = I2CPreTime[1];
+		ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
+		ActivePreTime--;
+		ActiveResetTimeOut = I2CResetTimeOut[1];
+		ActiveResetTimeOut = I2CResetTimeOut[0] + (ActiveResetTimeOut << 8);
+		ResetCountDown = ActiveResetTimeOut - 1;
+		WDICountDown = WDI_DELAY_TIME - 1;
 
-    TimerMinFlag = 0;
-        CountOneMin = 0;
-        TimerHalfSecFlag = 0;
-        CountHalfSec = 0;
-        TimerCount = 0;
-        LedCycle = 0;
-        //LedTimes = 0;
-        LedCount = 0;
+		TimerMinFlag = 0;
+		CountOneMin = 0;
+		TimerHalfSecFlag = 0;
+		CountHalfSec = 0;
+		TimerCount = 0;
+		LedCycle = 0;
+		//LedTimes = 0;
+		LedCount = 0;
 
-        WaitInfoATimeOut = 0;
+		WaitInfoATimeOut = 0;
 
-        /* Get MODE pin level */
-        if (MODE_PORT_IN & MODE_PORT_PIN)
-        {
-            I2CPowerMode[0] = 1;
-        }
-        else
-        {
-            I2CPowerMode[0] = 0;
-        }
-        I2CPowerMode[1] = 0xFF;
+		/* Get MODE pin level */
+		if (MODE_PORT_IN & MODE_PORT_PIN)
+		{
+			I2CPowerMode[0] = 1;
+		}
+		else
+		{
+			I2CPowerMode[0] = 0;
+		}
+		I2CPowerMode[1] = 0xFF;
 
-    TimerMinFlag = 1;
+		TimerMinFlag = 1;
 
 loop:
-        LedFlag = 0;
-        LED_ACTIVE;
-    while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 0)
-    {
-            if((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-            {
-                 while((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-                 {
-                      delay_ms(1);
-                      ResetInCount++;
-                      if(ResetInCount == 1000)
-                          POWEREN_INACTIVE;
-                 }
-                 POWEREN_ACTIVE;
-             }
+		LedFlag = 0;
+		LED_ACTIVE;
+		
+		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 0)
+		{
+			ResetInDetect();
+		}
+		
+		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 1)
+		{
+			ResetInDetect();
+			
+			if(ResetCount == 4)
+				while(1);
+			
+			if(I2CCmd[0] == 1) //接收到A信号
+			{
+				TimerMinFlag = 0;
+				LedCycle = 2;
+				LedFlag = 1;
+				//LedTimes = 1;
+				LED_TOGGLE;
+				break;
+			}
 
-        if(I2CCmd[0] == 1) //接收到A信号
-        {
-                 TimerMinFlag = 0;
-                 LedCycle = 2;
-                 LedFlag = 1;
-                 //LedTimes = 1;
-                 LED_TOGGLE;
-                 break;
-        }
+			if(CountOneMin == 120)
+			{
+				TimerMinFlag = 0;
+				CountOneMin = 0;
+				TimerCount = 0;
+				WaitInfoATimeOut = 1;
+				ResetCount++;
+				POWEREN_INACTIVE;
+				TimerHalfSecFlag = 1;
+			}
 
-        if(CountOneMin == 120)
-        {
-            TimerMinFlag = 0;
-        CountOneMin = 0;
-                TimerCount = 0;
-                WaitInfoATimeOut = 1;
-        ResetCount++;
-                POWEREN_INACTIVE;
-                TimerHalfSecFlag = 1;
-        }
+			if(ResetFlag == 1)
+			{
+				if(CountHalfSec == 3)
+				{
+ 					ResetFlag = 0;
+					TimerHalfSecFlag = 0;
+					CountHalfSec = 0;
+					TimerCount = 0;
+					POWEREN_ACTIVE;
+					TimerMinFlag = 1;
+					CountOneMin = 0;
+				}
+			}
 
-        if(ResetCount == 4)
-            while(1);
+			if(WaitInfoATimeOut == 1)
+			{
+				if(CountHalfSec == 3)
+				{
+					WaitInfoATimeOut = 0;
+					TimerHalfSecFlag = 0;
+					CountHalfSec = 0;
+					TimerCount = 0;
+					POWEREN_ACTIVE;
+					TimerMinFlag = 1;
+				}
+			}
+		}
 
-            if(ResetFlag == 1)
-            {
-                  if(CountHalfSec == 3)
-                 {
-                       ResetFlag = 0;
-                       TimerHalfSecFlag = 0;
-                       CountHalfSec = 0;
-                       TimerCount = 0;
-                       POWEREN_ACTIVE;
-                       TimerMinFlag = 1;
-                       CountOneMin = 0;
-         }
-            }
+		/* wait for watchdog enable */
+		while ((WDT_PORT_IN & WDT_PORT_PIN) == 0)
+		{
+			ResetInDetect();
+			/* Enter LPM3 */
+			__low_power_mode_3();
+			/* For debugger */
+			__no_operation();
 
-            if(WaitInfoATimeOut == 1)
-            {
-                 if(CountHalfSec == 3)
-                 {
-                       WaitInfoATimeOut = 0;
-                       TimerHalfSecFlag = 0;
-                       CountHalfSec = 0;
-                       TimerCount = 0;
-                       POWEREN_ACTIVE;
-                       TimerMinFlag = 1;
-         }
-            }
-    }
+			/* Refresh Watchdog */
+ 			WDTCTL = WDT_ARST_250;
 
-        /* wait for watchdog enable */
-        while ((WDT_PORT_IN & WDT_PORT_PIN) == 0)
-        {
-            if((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-            {
-                 while((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-                 {
-                      delay_ms(1);
-                      ResetInCount++;
-                      if(ResetInCount == 1000)
-                          POWEREN_INACTIVE;
-                 }
-                 POWEREN_ACTIVE;
-             }
-            /* Enter LPM3 */
-            __low_power_mode_3();
-            /* For debugger */
-            __no_operation();
+//			I2CProceed();
+		}
 
-            /* Refresh Watchdog */
-            WDTCTL = WDT_ARST_250;
+		/* Get WDT pin level */
+		WDTPreLevel = WDT_PORT_IN & WDT_PORT_PIN;
+//		if (WDTPreLevel)
+//		{
+		WDTState = WDT_HIGH;
+//		}
+//		else
+//		{
+//			WDTState = WDT_LOW;
+//		}
 
-  //          I2CProceed();
-        }
+		/* Set WachdogActive */
+		WachdogActive = 1;
 
-        /* Get WDT pin level */
-        WDTPreLevel = WDT_PORT_IN & WDT_PORT_PIN;
-//      if (WDTPreLevel)
-//      {
-            WDTState = WDT_HIGH;
-//      }
-//      else
-//      {
-//          WDTState = WDT_LOW;
-//      }
+		/* Get WDI level */
+		WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
 
-        /* Set WachdogActive */
-        WachdogActive = 1;
+		/* while loop */
+		while (WachdogActive)
+		{
+			/* Enter LPM3 */
+			__low_power_mode_3();
+			ResetInDetect();
+			/* For debugger */
+			__no_operation();
 
-        /* Get WDI level */
-        WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
+			/* Refresh Watchdog */
+			WDTCTL = WDT_ARST_250;
 
-        /* while loop */
-        while (WachdogActive)
-        {
-            /* Enter LPM3 */
-            __low_power_mode_3();
-            if((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-            {
-                 while((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
-                 {
-                      delay_ms(1);
-                      ResetInCount++;
-                      if(ResetInCount == 1000)
-                          POWEREN_INACTIVE;
-                 }
-                 POWEREN_ACTIVE;
-             }
-            /* For debugger */
-            __no_operation();
+//			I2CProceed();
 
-            /* Refresh Watchdog */
-            WDTCTL = WDT_ARST_250;
-
-    //        I2CProceed();
-
-            /* Count Down for Reset Low Pulse Time or Power Low Pulse Time */
-            if (ResetPulseCountDown || PowerPulseCountDown)
-            {
-                if (ResetPulseCountDown)
-                {
-                    ResetPulseCountDown--;
-                }
-                else
-                {
-                    PowerPulseCountDown--;
-                }
-            }
-            else
-            {
+			/* Count Down for Reset Low Pulse Time or Power Low Pulse Time */
+			if (ResetPulseCountDown || PowerPulseCountDown)
+			{
+				if (ResetPulseCountDown)
+				{
+					ResetPulseCountDown--;
+				}
+				else
+				{
+					PowerPulseCountDown--;
+				}
+			}
+			else
+			{
 #if 0
-                if (PowerButton == PWR_BUTTON_T0)
-                {
-                    if (I2CPowerMode[0] & PWR_BUTTON_ATX)
-                    {
-                        /* Set PowerPulse */
-                        PowerButton = PWR_BUTTON_T1;
-                        /* Set Power Button T1 */
-                        PowerPulseCountDown = PWR_ATXT1_TIME - 1;
-                    }
-                    else
-                    {
-                        /* Set PowerPulse */
-                        PowerButton = PWR_BUTTON_IDLE;
-                        /* Set Power Button T3 */
-                        PowerPulseCountDown = PWR_ATT3_TIME - 1;
-                    }
-                    /* Output high on POWER EN */
-                    POWEREN_INACTIVE;
-                }
-                else if (PowerButton == PWR_BUTTON_T1)
-                {
-                    /* Set PowerButton */
-                    PowerButton = PWR_BUTTON_T2;
-                    /* Set Power Button T2 */
-                    PowerPulseCountDown = PWR_ATXT2_TIME - 1;
-                    /* Output low on POWER BTN */
-                    POWERBTN_ACTIVE;
-                }
-                else if (PowerButton == PWR_BUTTON_T2)
-                {
-                    /* Set PowerButton */
-                    PowerButton = PWR_BUTTON_END;
-                    /* Set Power Third Pulse Time */
-                    PowerPulseCountDown = PWR_ATT3_TIME - 1;
-                    /* Output low on POWER BTN */
-                    POWERBTN_INACTIVE;
-                }
-                else
-                {
-                    if (RESET_PORT_DIR & RESET_PORT_PIN)
-                    {
-                        /* Output high on the Reset pin */
-                        RESET_INACTIVE;
-                        if (PowerButton == PWR_BUTTON_END)
-                        {
-                            /* Set PowerButton */
-                            PowerButton = PWR_BUTTON_IDLE;
-                            /* Clear WachdogActive */
-                            WachdogActive = 0;
-                        }
-                    }
-                }
+				if (PowerButton == PWR_BUTTON_T0)
+				{
+					if (I2CPowerMode[0] & PWR_BUTTON_ATX)
+					{
+						/* Set PowerPulse */
+						PowerButton = PWR_BUTTON_T1;
+						/* Set Power Button T1 */
+						PowerPulseCountDown = PWR_ATXT1_TIME - 1;
+					}
+					else
+					{
+						/* Set PowerPulse */
+						PowerButton = PWR_BUTTON_IDLE;
+						/* Set Power Button T3 */
+						PowerPulseCountDown = PWR_ATT3_TIME - 1;
+					}
+					/* Output high on POWER EN */
+					POWEREN_INACTIVE;
+				}
+				else if (PowerButton == PWR_BUTTON_T1)
+				{
+					/* Set PowerButton */
+					PowerButton = PWR_BUTTON_T2;
+					/* Set Power Button T2 */
+					PowerPulseCountDown = PWR_ATXT2_TIME - 1;
+					/* Output low on POWER BTN */
+					POWERBTN_ACTIVE;
+				}
+				else if (PowerButton == PWR_BUTTON_T2)
+				{
+					/* Set PowerButton */
+					PowerButton = PWR_BUTTON_END;
+					/* Set Power Third Pulse Time */
+					PowerPulseCountDown = PWR_ATT3_TIME - 1;
+					/* Output low on POWER BTN */
+					POWERBTN_INACTIVE;
+				}
+				else
+				{
+					if (RESET_PORT_DIR & RESET_PORT_PIN)
+					{
+						/* Output high on the Reset pin */
+						RESET_INACTIVE;
+						if (PowerButton == PWR_BUTTON_END)
+						{
+							/* Set PowerButton */
+							PowerButton = PWR_BUTTON_IDLE;
+							/* Clear WachdogActive */
+							WachdogActive = 0;
+						}
+					}
+				}
 #endif
 
-                /* Count Down for WDI detection delay time */
-                if (WDICountDown)
-                {
-                    WDICountDown--;
+				/* Count Down for WDI detection delay time */
+				if (WDICountDown)
+				{
+					WDICountDown--;
 
-                    /* If WDICountDown is 0 */
-                    if (WDICountDown == 0)
-                    {
-                        /* Check WDI level */
-                        WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
-                    }
-                }
-                else
-                {
-                    if (WDITrigger)
-                    {
-                        /* Check WDT level */
-                        WDTDetect();
-                    }
+					/* If WDICountDown is 0 */
+					if (WDICountDown == 0)
+					{
+						/* Check WDI level */
+						WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
+					}
+				}
+				else
+				{
+					if (WDITrigger)
+					{
+						/* Check WDT level */
+						WDTDetect();
+					}
 
-                    /* If WDT becomes enable */
-                    if (WDTState == WDT_LOW_HIGH)
-                    {
-                        /* Get MODE pin level */
-                        if (MODE_PORT_IN & MODE_PORT_PIN)
-                        {
-                            I2CPowerMode[0] = 1;
-                        }
-                        else
-                        {
-                            I2CPowerMode[0] = 0;
-                        }
-                    }
+					/* If WDT becomes enable */
+					if (WDTState == WDT_LOW_HIGH)
+					{
+						/* Get MODE pin level */
+						if (MODE_PORT_IN & MODE_PORT_PIN)
+						{
+							I2CPowerMode[0] = 1;
+						}
+         					else
+						{
+							I2CPowerMode[0] = 0;
+						}
+					}
 
-                    /* If WDT level is high */
-                    if (WDTState == WDT_HIGH)
-                    {
-                        /* Check WDI level */
-                        if (WDIDetect())
-                        {
-                            /* Re-set count down time when WDI trigger evenet is occured */
-                            ResetCountDown = ActiveResetTimeOut - 1;
-                            ResetCount = 0;
+					/* If WDT level is high */
+					if (WDTState == WDT_HIGH)
+					{
+						/* Check WDI level */
+						if (WDIDetect())
+						{
+							/* Re-set count down time when WDI trigger evenet is occured */
+							ResetCountDown = ActiveResetTimeOut - 1;
+							ResetCount = 0;
 
-                            /* Output high level on the INT */
-                            //INT_INACTIVE;
-                            /* restore INT Pre-time */
-                            ActivePreTime = I2CPreTime[1];
-                            ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
-                            ActivePreTime--;
+							/* Output high level on the INT */
+							//INT_INACTIVE;
+							/* restore INT Pre-time */
+							ActivePreTime = I2CPreTime[1];
+							ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
+							ActivePreTime--;
 
-                            /* Set WDITrigger */
-                            WDITrigger = 1;
-                            LedCycle = 1;
-                            //LedTimes = 1;
-                            LED_TOGGLE;
-                        }
-                        else
-                        {
-                            /* 50ms counter for Reset Count Down */
-                            Count50ms++;
-                            /* Reset Count Down every 100ms */
-                            if ((Count50ms & 0x01) == 0)
-                            {
-                                /* Reset Count Down */
-                                if (ResetCountDown)
-                                {
-                                    ResetCountDown--;
+							/* Set WDITrigger */
+							WDITrigger = 1;
+							LedCycle = 1;
+							//LedTimes = 1;
+							LED_TOGGLE;
+						}
+						else
+						{
+							/* 50ms counter for Reset Count Down */
+							Count50ms++;
+							/* Reset Count Down every 100ms */
+							if ((Count50ms & 0x01) == 0)
+							{
+								/* Reset Count Down */
+								if (ResetCountDown)
+								{
+									ResetCountDown--;
 
-                                    /* Update remaining Reset Time Out */
-                                    I2CResetTimeOutRemain[0] = ResetCountDown & 0xFF;
-                                    I2CResetTimeOutRemain[1] = ResetCountDown >> 8;
+									/* Update remaining Reset Time Out */
+									I2CResetTimeOutRemain[0] = ResetCountDown & 0xFF;
+									I2CResetTimeOutRemain[1] = ResetCountDown >> 8;
 
-                                    /* INT Pre-time */
-                                    if (ActivePreTime)
-                                    {
-                                        ActivePreTime--;
-                                        /* Update remaining INT Pre-time */
-                                        I2CPreTimeRemain[0] = ActivePreTime & 0xFF;
-                                        I2CPreTimeRemain[1] = ActivePreTime >> 8;
-                                    }
-                                    else
-                                    {
-                                        /* Output low level on the INT */
-                                        //INT_ACTIVE;
-                                    }
-                                }
-                                else
-                                {
-                                    /* Re-set count down time when WDI trigger evenet is occured */
-                                    ResetCountDown = ActiveResetTimeOut - 1;
+									/* INT Pre-time */
+									if (ActivePreTime)
+									{
+										ActivePreTime--;
+										/* Update remaining INT Pre-time */
+										I2CPreTimeRemain[0] = ActivePreTime & 0xFF;
+										I2CPreTimeRemain[1] = ActivePreTime >> 8;
+									}
+									else
+									{
+										/* Output low level on the INT */
+										//INT_ACTIVE;
+									}
+								}
+								else
+								{
+									/* Re-set count down time when WDI trigger evenet is occured */
+									ResetCountDown = ActiveResetTimeOut - 1;
 
-                                    /* Output high level on the INT */
-                                    //INT_INACTIVE;
-                                    /* restore INT Pre-time */
-                                    ActivePreTime = I2CPreTime[1];
-                                    ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
-                                    ActivePreTime--;
+									/* Output high level on the INT */
+									//INT_INACTIVE;
+									/* restore INT Pre-time */
+									ActivePreTime = I2CPreTime[1];
+									ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
+									ActivePreTime--;
 
-                                    /* Clear WDITrigger */
-                                    WDITrigger = 0;
+									/* Clear WDITrigger */
+									WDITrigger = 0;
 
-                                    /* Increase Reset Pulse Count */
-                                    ResetCount++;
+									/* Increase Reset Pulse Count */
+									ResetCount++;
 
-//                                  if (ResetCount >= ActiveResetCount)
-                                    if (ResetCount >= RST_COUNT)
-                                    {
-                                        ResetCount = 0;
-                                        /* Set PowerButton */
-                                        PowerButton = PWR_BUTTON_T0;
-                                        /* Set Power Button T0 */
-                                        PowerPulseCountDown = PWR_ATT0_TIME - 1;
-                                        /* Output low on the Reset pin */
-                                        //RESET_ACTIVE;
-                                        /* Output low on POWER EN */
-                                        POWEREN_INACTIVE;
-                                    }
-                                    else
-                                    {
-                                        /* Re-set count down time when WDI trigger evenet is occured */
-                                        ResetCountDown = RST_TIME_OUT_P - 1;
+//									if (ResetCount >= ActiveResetCount)
+									if (ResetCount >= RST_COUNT)
+									{
+										ResetCount = 0;
+										/* Set PowerButton */
+										PowerButton = PWR_BUTTON_T0;
+										/* Set Power Button T0 */
+										PowerPulseCountDown = PWR_ATT0_TIME - 1;
+										/* Output low on the Reset pin */
+										//RESET_ACTIVE;
+										/* Output low on POWER EN */
+										POWEREN_INACTIVE;
+									}
+									else
+									{
+										/* Re-set count down time when WDI trigger evenet is occured */
+										ResetCountDown = RST_TIME_OUT_P - 1;
 
-                                        /* Set Reset Low Pulse Time */
-                                        ResetPulseCountDown = RST_PUS_TIME - 1;
-                                        /* Output low on the Reset pin */
-                                        //RESET_ACTIVE;
-                                        POWEREN_INACTIVE;
-                                    }
+										/* Set Reset Low Pulse Time */
+										ResetPulseCountDown = RST_PUS_TIME - 1;
+										/* Output low on the Reset pin */
+										//RESET_ACTIVE;
+										POWEREN_INACTIVE;
+									}
 
-                                    /* Set WDI detection delay time when Reset */
-                                    WDICountDown = WDI_DELAY_TIME - 1;
-                                    TimerHalfSecFlag = 1;
-                                    CountHalfSec = 0;
-                                    ResetFlag = 1;
-                                    I2CCmd[0] = 0;
-                                    goto loop;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+									/* Set WDI detection delay time when Reset */
+									WDICountDown = WDI_DELAY_TIME - 1;
+									TimerHalfSecFlag = 1;
+									CountHalfSec = 0;
+									ResetFlag = 1;
+									I2CCmd[0] = 0;
+								
+									goto loop;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 
