@@ -239,52 +239,52 @@ const unsigned char FWVersion[] =
  */
 unsigned int CalibrateVLO(void)
 {
-    unsigned int VLOCount;
+	unsigned int VLOCount;
 
-    /* To calibrate the VLO by Timer/DCO, the MSP430 can goes into LPM3 with clocking ACLK by VLO */
+	/* To calibrate the VLO by Timer/DCO, the MSP430 can goes into LPM3 with clocking ACLK by VLO */
 #ifdef VLO_CAL_LPM0
-    /* Rising edge, CCIxB: ACLK, Capture Mode, Enable Interrupt */
-    TA0CCTL0 = CM_1 + CCIS_1 + CAP + CCIE;
+	/* Rising edge, CCIxB: ACLK, Capture Mode, Enable Interrupt */
+	TA0CCTL0 = CM_1 + CCIS_1 + CAP + CCIE;
 #else
-    /* Rising edge, CCIxB: ACLK, Capture Mode */
-    TA0CCTL0 = CM_1 + CCIS_1 + CAP;
+	/* Rising edge, CCIxB: ACLK, Capture Mode */
+	TA0CCTL0 = CM_1 + CCIS_1 + CAP;
 #endif
-    /* SMCLK, Continuous Up, Clear Counter */
-    TA0CTL = TASSEL_2 + MC_2 + TACLR;
-    /* Clear interrpt flag */
-    TA0CCTL0 &= ~(CCIFG);
-
-#ifdef VLO_CAL_LPM0
-    /* Enter LPM0 */
-    __low_power_mode_0();
-    /* For debugger */
-    __no_operation();
-#else
-    /* First rising edge of ACLK */
-    while (!(TA0CCTL0 & CCIFG)) ;
-    /* Clear interrpt flag */
-    TA0CCTL0 &= ~(CCIFG);
-#endif
-    /* Get Timer Counter Value */
-    VLOCount = TA0CCR0;
+	/* SMCLK, Continuous Up, Clear Counter */
+	TA0CTL = TASSEL_2 + MC_2 + TACLR;
+	/* Clear interrpt flag */
+	TA0CCTL0 &= ~(CCIFG);
 
 #ifdef VLO_CAL_LPM0
-    /* Enter LPM0 */
-    __low_power_mode_0();
-    /* For debugger */
-    __no_operation();
+	/* Enter LPM0 */
+	__low_power_mode_0();
+	/* For debugger */
+	__no_operation();
 #else
-    /* Second rising edge of ACLK */
-    while (!(TA0CCTL0 & CCIFG)) ;
-    /* Clear interrpt flag */
-    TA0CCTL0 &= ~(CCIFG);
+	/* First rising edge of ACLK */
+	while (!(TA0CCTL0 & CCIFG)) ;
+	/* Clear interrpt flag */
+	TA0CCTL0 &= ~(CCIFG);
 #endif
-    /* Calculate the counter value of VLO */
-    VLOCount = TA0CCR0 - VLOCount;
-    /* ACLK, Stop, Clear Counter */
-    TA0CTL = TASSEL_1 + MC_3 + TACLR;
+	/* Get Timer Counter Value */
+	VLOCount = TA0CCR0;
 
-    return VLOCount;
+#ifdef VLO_CAL_LPM0
+	/* Enter LPM0 */
+	__low_power_mode_0();
+	/* For debugger */
+	__no_operation();
+#else
+	/* Second rising edge of ACLK */
+	while (!(TA0CCTL0 & CCIFG)) ;
+	/* Clear interrpt flag */
+	TA0CCTL0 &= ~(CCIFG);
+#endif
+	/* Calculate the counter value of VLO */
+	VLOCount = TA0CCR0 - VLOCount;
+	/* ACLK, Stop, Clear Counter */
+	TA0CTL = TASSEL_1 + MC_3 + TACLR;
+
+	return VLOCount;
 }
 
 
@@ -293,51 +293,51 @@ unsigned int CalibrateVLO(void)
  */
 void SetDCO(DCO_FREQ clock)
 {
-    /* If calibration constants is erased */
-    if (CALBC1_1MHZ == 0xFF)
-    {
-        while (1)
-        {
-            __delay_cycles(100000);
-        }
-    }
+	/* If calibration constants is erased */
+	if (CALBC1_1MHZ == 0xFF)
+	{
+		while (1)
+		{
+			__delay_cycles(100000);
+		}
+	}
 
-    /* Select lowest DCOx and MODx settings */
-    DCOCTL = 0;
+	/* Select lowest DCOx and MODx settings */
+	DCOCTL = 0;
 
-    switch (clock)
-    {
-    case DCO_1MHZ:
-        /* Set range */
-        BCSCTL1 = CALBC1_1MHZ;
-        /* Set DCO step + modulation */
-        DCOCTL = CALDCO_1MHZ;
-        break;
+	switch (clock)
+	{
+		case DCO_1MHZ:
+		/* Set range */
+		BCSCTL1 = CALBC1_1MHZ;
+		/* Set DCO step + modulation */
+		DCOCTL = CALDCO_1MHZ;
+		break;
 
-//  case DCO_8MHZ:
-        /* Set range */
-//      BCSCTL1 = CALBC1_8MHZ;
-        /* Set DCO step + modulation */
-//      DCOCTL = CALDCO_8MHZ;
-//      break;
+//		case DCO_8MHZ:
+		/* Set range */
+//		BCSCTL1 = CALBC1_8MHZ;
+		/* Set DCO step + modulation */
+//		DCOCTL = CALDCO_8MHZ;
+//		break;
 
-//  case DCO_12MHZ:
-        /* Set range */
-//      BCSCTL1 = CALBC1_12MHZ;
-        /* Set DCO step + modulation */
-//      DCOCTL = CALDCO_12MHZ;
-//      break;
+//		case DCO_12MHZ:
+		/* Set range */
+//		BCSCTL1 = CALBC1_12MHZ;
+		/* Set DCO step + modulation */
+//		DCOCTL = CALDCO_12MHZ;
+//		break;
 
-    case DCO_16MHZ:
-        /* Set range */
-        BCSCTL1 = CALBC1_16MHZ;
-        /* Set DCO step + modulation */
-        DCOCTL = CALDCO_16MHZ;
-        break;
-    }
+		case DCO_16MHZ:
+		/* Set range */
+		BCSCTL1 = CALBC1_16MHZ;
+		/* Set DCO step + modulation */
+		DCOCTL = CALDCO_16MHZ;
+		break;
+	}
 
-    /* LFXT1 = VLO */
-    BCSCTL3 |= LFXT1S_2;
+	/* LFXT1 = VLO */
+	BCSCTL3 |= LFXT1S_2;
 }
 
 
@@ -346,34 +346,31 @@ void SetDCO(DCO_FREQ clock)
  */
 void IOInit(void)
 {
-    /* Set unused pin to output low */
-    P2OUT &= ~(BIT7);
-    P2DIR |= BIT7;
+	/* Set unused pin to output low */
+	P2OUT &= ~(BIT7);
+	P2DIR |= BIT7;
 
-    /* Set WDI as input pin */
-    WDI_PORT_DIR &= ~WDI_PORT_PIN;
-    /* Set WDT as input pin */
-    WDT_PORT_DIR &= ~WDT_PORT_PIN;
-    /* Set RST IN as input pin */
-    RESETIN_PORT_DIR &= ~RESETIN_PORT_PIN;
-    /* Set POWEREN as output pin */
-    POWEREN_PORT_DIR |= POWEREN_PORT_PIN;
-    /* Set WDT HW EN as input pin */
-    WDTEN_HW_PORT_DIR &= ~WDTEN_HW_PORT_PIN;
-    /* Set LED as output pin */
-    LED_PORT_DIR |= LED_PORT_PIN;
+	/* Set WDI as input pin */
+	WDI_PORT_DIR &= ~WDI_PORT_PIN;
+	/* Set WDT as input pin */
+	WDT_PORT_DIR &= ~WDT_PORT_PIN;
+	/* Set RST IN as input pin */
+	RESETIN_PORT_DIR &= ~RESETIN_PORT_PIN;
+	/* Set POWEREN as output pin */
+	POWEREN_PORT_DIR |= POWEREN_PORT_PIN;
+	/* Set WDT HW EN as input pin */
+	WDTEN_HW_PORT_DIR &= ~WDTEN_HW_PORT_PIN;
+	/* Set LED as output pin */
+	LED_PORT_DIR |= LED_PORT_PIN;
 
-    P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
+	P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
 
 
-    /* Set POWER EN as output high by input floating with external pull-up */
-    POWEREN_ACTIVE;
-
-    /* Set MODE as input pin with internal pull-up (ATX mode) */
-    MODE_PORT_SEL &= ~MODE_PORT_PIN;
-    MODE_PORT_OUT |= MODE_PORT_PIN;
-    MODE_PORT_REN |= MODE_PORT_PIN;
-    MODE_PORT_DIR &= ~MODE_PORT_PIN;
+	/* Set MODE as input pin with internal pull-up (ATX mode) */
+	MODE_PORT_SEL &= ~MODE_PORT_PIN;
+	MODE_PORT_OUT |= MODE_PORT_PIN;
+	MODE_PORT_REN |= MODE_PORT_PIN;
+	MODE_PORT_DIR &= ~MODE_PORT_PIN;
 }
 
 
@@ -382,13 +379,13 @@ void IOInit(void)
  */
 void TimerInit(void)
 {
-    /* Compare mode, CCR0 interrupt enabled */
-    TA0CCTL0 = CCIE;
-    /* CCR0 period time: 50ms */
-    TA0CCR0 = VLO50msCount;
-    /* ACLK, Continuous Up, Clear Counter */
-    TA0CTL = TASSEL_1 + MC_2 + TACLR;
-    /* SMCLK, Continuous Up, / 8, Clear Counter */
+	/* Compare mode, CCR0 interrupt enabled */
+	TA0CCTL0 = CCIE;
+	/* CCR0 period time: 50ms */
+	TA0CCR0 = VLO50msCount;
+	/* ACLK, Continuous Up, Clear Counter */
+	TA0CTL = TASSEL_1 + MC_2 + TACLR;
+	/* SMCLK, Continuous Up, / 8, Clear Counter */
 }
 
 
@@ -397,18 +394,18 @@ void TimerInit(void)
  */
 void I2CInit(void)
 {
-    /* Port & USI mode setup */
-    USICTL0 = USIPE6 | USIPE7 | USISWRST;
-    /* Enable I2C mode & USI interrupts */
-    USICTL1 = USII2C | USIIE | USISTTIE;
-    /* Setup clock polarity */
-    USICKCTL = USICKPL;
-    /* Disable automatic clear control */
-    USICNT |= USIIFGCC;
-    /* Enable USI */
-    USICTL0 &= ~USISWRST;
-    /* Clear pending flag */
-    USICTL1 &= ~(USIIFG | USISTTIFG);
+	/* Port & USI mode setup */
+	USICTL0 = USIPE6 | USIPE7 | USISWRST;
+	/* Enable I2C mode & USI interrupts */
+	USICTL1 = USII2C | USIIE | USISTTIE;
+	/* Setup clock polarity */
+	USICKCTL = USICKPL;
+	/* Disable automatic clear control */
+	USICNT |= USIIFGCC;
+	/* Enable USI */
+	USICTL0 &= ~USISWRST;
+	/* Clear pending flag */
+	USICTL1 &= ~(USIIFG | USISTTIFG);
 }
 
 
@@ -417,44 +414,44 @@ void I2CInit(void)
  */
 unsigned char WDIDetect(void)
 {
-    /* Get current WDI level */
-    WDICurLevel = WDI_PORT_IN & WDI_PORT_PIN;
+	/* Get current WDI level */
+	WDICurLevel = WDI_PORT_IN & WDI_PORT_PIN;
 
-    /* If WDI level doesn't change */
-    if (WDIPreLevel == WDICurLevel)
-    {
-//      if (WDICurLevel)
-//      {
-//          WDIState = WDI_HIGH;
-//      }
-//      else
-//      {
-//          WDIState = WDI_LOW;
-//      }
+	/* If WDI level doesn't change */
+	if (WDIPreLevel == WDICurLevel)
+	{
+//		if (WDICurLevel)
+//		{
+//			WDIState = WDI_HIGH;
+//		}
+//		else
+//		{
+//			WDIState = WDI_LOW;
+//		}
 
-        return 0;
-    }
-    else
-    {
-        WDIPreLevel = WDICurLevel;
+		return 0;
+	}
+	else
+	{
+		WDIPreLevel = WDICurLevel;
 
-//      if (WDICurLevel)
-//      {
-//          WDIState = WDI_LOW_HIGH;
-//      }
-//      else
-//      {
-//          WDIState = WDI_HIGH_LOW;
-//      }
+//		if (WDICurLevel)
+//		{
+//			WDIState = WDI_LOW_HIGH;
+//		}
+//		else
+//		{
+//			WDIState = WDI_HIGH_LOW;
+//		}
 
-        return 1;
-    }
+		return 1;
+	}
 }
 
 /*
  * Reset In
  */
-void ResetInDetect(void)
+unsigned char ResetInDetect(void)
 {
 	if((RESETIN_PORT_IN & RESETIN_PORT_PIN) == 0)
 	{
@@ -464,61 +461,113 @@ void ResetInDetect(void)
 			if(ResetInCount < 1000)
 				ResetInCount++;
 			if(ResetInCount >= 1000)
+			{				
 				POWEREN_INACTIVE;
+				delay_ms(1000);
+				I2CCmd[0] = 0;
+				POWEREN_ACTIVE;
+				return 1;
+			}
 		}
-		ResetInCount = 0;
-		POWEREN_ACTIVE;
 	}
+	
+	ResetInCount = 0;
+	return 0;
+}
+
+/*
+* LED
+*/
+
+void Led_twinkle(unsigned char Cycle)
+{
+	LedCycle = Cycle;
+	LedCount = 0;
+	LedFlag = 1;
+	LED_TOGGLE;
+}
+
+void Led_Disabled_twinkle(void)
+{
+	LedFlag = 0;
+	LedCount = 0;
+	LED_ACTIVE;
+}
+
+/*
+ * Timer
+ */
+void MinTimerDisabled(void)
+{
+	TimerMinFlag = 0;
+	CountOneMin = 0;
+	TimerCount = 0;
+}
+
+void MinTimerEnable(void)
+{
+	TimerMinFlag = 1;
 }
 
 
+void HalfSecTimerDisabled(void)
+{
+	TimerHalfSecFlag = 0;
+	CountHalfSec = 0;
+	TimerCount = 0;
+}
+
+void HalfSecTimerEnable(void)
+{
+	TimerHalfSecFlag = 1;
+}
 /*
  * WDTDetect.c
  */
 void WDTDetect(void)
 {
-    /* Get current WDT level */
-    WDTCurLevel = WDT_PORT_IN & WDT_PORT_PIN;
+	/* Get current WDT level */
+	WDTCurLevel = WDT_PORT_IN & WDT_PORT_PIN;
 
-    /* If WDT level doesn't change */
-    if (WDTPreLevel == WDTCurLevel)
-    {
-        if (WDTCurLevel)
-        {
-            WDTState = WDT_HIGH;
-        }
-        else
-        {
-            WDTState = WDT_LOW;
-        }
-    }
-    else
-    {
-        WDTPreLevel = WDTCurLevel;
+	/* If WDT level doesn't change */
+	if (WDTPreLevel == WDTCurLevel)
+	{
+		if (WDTCurLevel)
+		{
+			WDTState = WDT_HIGH;
+		}
+		else
+		{
+			WDTState = WDT_LOW;
+		}
+	}
+	else
+	{
+		WDTPreLevel = WDTCurLevel;
 
-        if (WDTCurLevel)
-        {
-            WDTState = WDT_LOW_HIGH;
+		if (WDTCurLevel)
+		{
+			WDTState = WDT_LOW_HIGH;
 
-            /* Set WDI detection delay time when WDT re-enable */
-            WDICountDown = WDI_DELAY_TIME - 1;
+			/* Set WDI detection delay time when WDT re-enable */
+			WDICountDown = WDI_DELAY_TIME - 1;
 
-            /* Get WDI level */
-            WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
-//          if (WDIPreLevel)
-//          {
-//              WDIState = WDI_HIGH;
-//          }
-//          else
-//          {
-//              WDIState = WDI_LOW;
-//          }
-        }
-        else
-        {
-            WDTState = WDT_HIGH_LOW;
-        }
-    }
+			/* Get WDI level */
+			WDIPreLevel = WDI_PORT_IN & WDI_PORT_PIN;
+//			if (WDIPreLevel)
+//			{
+//				WDIState = WDI_HIGH;
+//			}
+//			else
+//			{
+//				WDIState = WDI_LOW;
+//			}
+		}
+		else
+		{
+			WDTState = WDT_HIGH_LOW;
+		}
+	}
 }
 
 
@@ -527,72 +576,72 @@ void WDTDetect(void)
  */
 void I2CProceed(void)
 {
-    while(!(USICTL1 & USISTP));
-    /* Stop condition */
-    if (USICTL1 & USISTP)
-    {
-        /* SDA = input */
-        USICTL0 &= ~USIOE;
-        /* Clear stop flag */
-        USICTL1 &= ~USISTP;
+	while(!(USICTL1 & USISTP));
+	/* Stop condition */
+	if (USICTL1 & USISTP)
+	{
+		/* SDA = input */
+		USICTL0 &= ~USIOE;
+		/* Clear stop flag */
+		USICTL1 &= ~USISTP;
 
-        if ((I2CState == I2C_RECE_DATA) || (I2CState == I2C_SEND_RX_ACK))
-        {
-            /* Update Time Out */
-            if (I2CRegister == REG_TIME_OUT)
-            {
-                if ((I2CResetTimeOut[0] != 0) || (I2CResetTimeOut[1] != 0))
-                {
-                    ActiveResetTimeOut = I2CResetTimeOut[1];
-                    ActiveResetTimeOut = I2CResetTimeOut[0] + (ActiveResetTimeOut << 8);
-                    ResetCountDown = ActiveResetTimeOut - 1;
-                }
-                else
-                {
-                    I2CResetTimeOut[0] = ActiveResetTimeOut & 0xFF;
-                    I2CResetTimeOut[1] = (ActiveResetTimeOut >> 8) & 0xFF;
-                }
-            }
-            /* Update Reset Count */
-//          else if (I2CRegister == REG_RST_COUNT)
-//          {
-//              if (I2CResetCount[0] != 0)
-//              {
-//                  ActiveResetCount = I2CResetCount[0];
-//              }
-//              else
-//              {
-//                  I2CResetCount[0] = ActiveResetCount;
-//              }
-//          }
-            /* Update INT Pre-time */
-            else if (I2CRegister == REG_PRE_TIME)
-            {
-                /* Set INT Pre-time */
-                ActivePreTime = I2CPreTime[1];
-                ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
-                if (ActivePreTime > (ActiveResetTimeOut - ResetCountDown))
-                {
-                    /* INT Pre-time is not expired */
-                    ActivePreTime -= (ActiveResetTimeOut - ResetCountDown);
-                    /* Output high level on the INT */
-                    //INT_INACTIVE;
-                }
-                else
-                {
-                    /* INT Pre-time is expired */
-                    ActivePreTime = 0;
-                    /* Output low level on the INT */
-                    //INT_ACTIVE;
-                }
-            }
-        }
+		if ((I2CState == I2C_RECE_DATA) || (I2CState == I2C_SEND_RX_ACK))
+		{
+			/* Update Time Out */
+			if (I2CRegister == REG_TIME_OUT)
+			{
+				if ((I2CResetTimeOut[0] != 0) || (I2CResetTimeOut[1] != 0))
+				{
+					ActiveResetTimeOut = I2CResetTimeOut[1];
+					ActiveResetTimeOut = I2CResetTimeOut[0] + (ActiveResetTimeOut << 8);
+					ResetCountDown = ActiveResetTimeOut - 1;
+				}
+				else
+				{
+					I2CResetTimeOut[0] = ActiveResetTimeOut & 0xFF;
+					I2CResetTimeOut[1] = (ActiveResetTimeOut >> 8) & 0xFF;
+				}
+			}
+			/* Update Reset Count */
+//			else if (I2CRegister == REG_RST_COUNT)
+//			{
+//				if (I2CResetCount[0] != 0)
+//				{
+//					ActiveResetCount = I2CResetCount[0];
+//				}
+//				else
+//				{
+//					I2CResetCount[0] = ActiveResetCount;
+//				}
+//			}
+			/* Update INT Pre-time */
+			else if (I2CRegister == REG_PRE_TIME)
+			{
+				/* Set INT Pre-time */
+				ActivePreTime = I2CPreTime[1];
+				ActivePreTime = I2CPreTime[0] + (ActivePreTime << 8);
+				if (ActivePreTime > (ActiveResetTimeOut - ResetCountDown))
+				{
+					/* INT Pre-time is not expired */
+					ActivePreTime -= (ActiveResetTimeOut - ResetCountDown);
+					/* Output high level on the INT */
+					//INT_INACTIVE;
+				}
+				else
+				{
+					/* INT Pre-time is expired */
+					ActivePreTime = 0;
+					/* Output low level on the INT */
+					//INT_ACTIVE;
+				}
+			}
+		}
 
-        /* Reset state machine */
-        I2CState = I2C_IDLE;
-        I2CRegister = 0;
-        pI2Cdata = (unsigned char *)&NullData;
-    }
+		/* Reset state machine */
+		I2CState = I2C_IDLE;
+		I2CRegister = 0;
+		pI2Cdata = (unsigned char *)&NullData;
+	}
 }
 
 
@@ -676,14 +725,9 @@ void main(void)
 		ResetCountDown = ActiveResetTimeOut - 1;
 		WDICountDown = WDI_DELAY_TIME - 1;
 
-		TimerMinFlag = 0;
-		CountOneMin = 0;
-		TimerHalfSecFlag = 0;
-		CountHalfSec = 0;
-		TimerCount = 0;
-		LedCycle = 0;
-		//LedTimes = 0;
-		LedCount = 0;
+		MinTimerDisabled();
+		HalfSecTimerDisabled();
+		Led_Disabled_twinkle();
 
 		WaitInfoATimeOut = 0;
 
@@ -698,69 +742,58 @@ void main(void)
 		}
 		I2CPowerMode[1] = 0xFF;
 
-		TimerMinFlag = 1;
-
 loop:
-		LedFlag = 0;
-		LED_ACTIVE;
-		
+		Led_Disabled_twinkle();
+				
 		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 0)
 		{
-			ResetInDetect();
+			if(ResetInDetect())
+				goto loop;
 		}
-		
+	
 		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 1)
 		{
-			ResetInDetect();
+			if(ResetInDetect())
+				goto loop;
 			
-			if(ResetCount == 4)
+			if(ResetCount > 3)
 				while(1);
-			
-			if(I2CCmd[0] == 1) //接收到A信号
-			{
-				TimerMinFlag = 0;
-				LedCycle = 2;
-				LedFlag = 1;
-				//LedTimes = 1;
-				LED_TOGGLE;
-				break;
-			}
-
-			if(CountOneMin == 120)
-			{
-				TimerMinFlag = 0;
-				CountOneMin = 0;
-				TimerCount = 0;
-				WaitInfoATimeOut = 1;
-				ResetCount++;
-				POWEREN_INACTIVE;
-				TimerHalfSecFlag = 1;
-			}
 
 			if(ResetFlag == 1)
 			{
-				if(CountHalfSec == 3)
+				if(CountHalfSec >= 3)
 				{
  					ResetFlag = 0;
-					TimerHalfSecFlag = 0;
-					CountHalfSec = 0;
-					TimerCount = 0;
+					HalfSecTimerDisabled();
 					POWEREN_ACTIVE;
-					TimerMinFlag = 1;
-					CountOneMin = 0;
+					MinTimerEnable();
 				}
+			}
+
+			if(I2CCmd[0] == 1) //接收到A信号
+			{
+				MinTimerDisabled();
+				Led_twinkle(2);
+				break;
+			}
+
+			if(CountOneMin >= 120)
+			{
+				MinTimerDisabled();
+				WaitInfoATimeOut = 1;
+				ResetCount++;
+				POWEREN_INACTIVE;
+				HalfSecTimerEnable();
 			}
 
 			if(WaitInfoATimeOut == 1)
 			{
-				if(CountHalfSec == 3)
+				if(CountHalfSec >= 3)
 				{
 					WaitInfoATimeOut = 0;
-					TimerHalfSecFlag = 0;
-					CountHalfSec = 0;
-					TimerCount = 0;
+					HalfSecTimerDisabled();
 					POWEREN_ACTIVE;
-					TimerMinFlag = 1;
+					MinTimerEnable();	
 				}
 			}
 		}
@@ -768,7 +801,8 @@ loop:
 		/* wait for watchdog enable */
 		while ((WDT_PORT_IN & WDT_PORT_PIN) == 0)
 		{
-			ResetInDetect();
+			if(ResetInDetect())
+				goto loop;
 			/* Enter LPM3 */
 			__low_power_mode_3();
 			/* For debugger */
@@ -802,7 +836,8 @@ loop:
 		{
 			/* Enter LPM3 */
 			__low_power_mode_3();
-			ResetInDetect();
+			if(ResetInDetect())
+				goto loop;
 			/* For debugger */
 			__no_operation();
 
@@ -933,9 +968,7 @@ loop:
 
 							/* Set WDITrigger */
 							WDITrigger = 1;
-							LedCycle = 1;
-							//LedTimes = 1;
-							LED_TOGGLE;
+							Led_twinkle(1);
 						}
 						else
 						{
@@ -948,7 +981,7 @@ loop:
 								if (ResetCountDown)
 								{
 									ResetCountDown--;
-
+#if 0
 									/* Update remaining Reset Time Out */
 									I2CResetTimeOutRemain[0] = ResetCountDown & 0xFF;
 									I2CResetTimeOutRemain[1] = ResetCountDown >> 8;
@@ -966,6 +999,7 @@ loop:
 										/* Output low level on the INT */
 										//INT_ACTIVE;
 									}
+#endif
 								}
 								else
 								{
@@ -985,35 +1019,18 @@ loop:
 									/* Increase Reset Pulse Count */
 									ResetCount++;
 
-//									if (ResetCount >= ActiveResetCount)
-									if (ResetCount >= RST_COUNT)
-									{
-										ResetCount = 0;
-										/* Set PowerButton */
-										PowerButton = PWR_BUTTON_T0;
-										/* Set Power Button T0 */
-										PowerPulseCountDown = PWR_ATT0_TIME - 1;
-										/* Output low on the Reset pin */
-										//RESET_ACTIVE;
-										/* Output low on POWER EN */
-										POWEREN_INACTIVE;
-									}
-									else
-									{
-										/* Re-set count down time when WDI trigger evenet is occured */
-										ResetCountDown = RST_TIME_OUT_P - 1;
+									/* Re-set count down time when WDI trigger evenet is occured */
+									ResetCountDown = RST_TIME_OUT_P - 1;
 
-										/* Set Reset Low Pulse Time */
-										ResetPulseCountDown = RST_PUS_TIME - 1;
-										/* Output low on the Reset pin */
-										//RESET_ACTIVE;
-										POWEREN_INACTIVE;
-									}
+									/* Set Reset Low Pulse Time */
+									ResetPulseCountDown = RST_PUS_TIME - 1;
+									/* Output low on the Reset pin */
+									//RESET_ACTIVE;
+									POWEREN_INACTIVE;
 
 									/* Set WDI detection delay time when Reset */
 									WDICountDown = WDI_DELAY_TIME - 1;
-									TimerHalfSecFlag = 1;
-									CountHalfSec = 0;
+									HalfSecTimerEnable();
 									ResetFlag = 1;
 									I2CCmd[0] = 0;
 								
@@ -1035,45 +1052,45 @@ loop:
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer0_A0(void)
 {
-    /* Clear interrpt flag */
-    TA0CCTL0 &= ~(CCIFG);
+	/* Clear interrpt flag */
+	TA0CCTL0 &= ~(CCIFG);
 
-    /* update CCR0 period time: 50ms */
-    TA0CCR0 += VLO50msCount;
+	/* update CCR0 period time: 50ms */
+	TA0CCR0 += VLO50msCount;
 
-    if(LedFlag == 1)
-    {
-         //LedTimes--;
-         LedCount++;
-         if(LedCount == (LedCycle * 20))
-         {
-             LedCount = 0;
-         LED_TOGGLE;
-         }
-    }
+	if(LedFlag == 1)
+	{
+		//LedTimes--;
+		LedCount++;
+		if(LedCount == (LedCycle * 20))
+		{
+			LedCount = 0;
+			LED_TOGGLE;
+		}
+	}
 
-    if(TimerMinFlag == 1)
-    {
-        TimerCount++;
-        if(TimerCount == 1200)
-        {
-            CountOneMin++;
-            TimerCount = 0;
-        }
-    }
+	if(TimerMinFlag == 1)
+	{
+		TimerCount++;
+		if(TimerCount == 1200)
+		{
+			CountOneMin++;
+			TimerCount = 0;
+		}
+	}
 
-    if(TimerHalfSecFlag == 1)
-    {
-        TimerCount++;
-        if(TimerCount == 10)
-        {
-            CountHalfSec++;
-            TimerCount = 0;
-        }
-    }
+	if(TimerHalfSecFlag == 1)
+	{
+		TimerCount++;
+		if(TimerCount == 10)
+		{
+			CountHalfSec++;
+			TimerCount = 0;
+		}
+	}
 
-    /* Exit low mode */
-    __low_power_mode_off_on_exit();
+	/* Exit low mode */
+	__low_power_mode_off_on_exit();
 }
 
 
@@ -1083,165 +1100,165 @@ __interrupt void Timer0_A0(void)
 #pragma vector=USI_VECTOR
 __interrupt void USI_I2C_ISR(void)
 {
-    /* Start condition */
-    if (USICTL1 & USISTTIFG)
-    {
-        /* Bit counter = 8, RX address */
-        USICNT = (USICNT & 0xE0) + 0x08;
-        /* Clear start flag */
-        USICTL1 &= ~USISTTIFG;
-        /* Go to next state: check address */
-        I2CState = I2C_RECE_ADDR;
-    }
-    /* Counter interrupt flag */
-    else if (USICTL1 & USIIFG)
-    {
-        switch (I2CState)
-        {
-        case I2C_RECE_ADDR:
-            /* Address match */
-            if (USISRL == SLAVE_ADDRESS)
-            {
-                /* SDA = output */
-                USICTL0 |= USIOE;
-                /* Go to next state: RX data */
-                I2CState = I2C_SEND_RX_ACK;
-                /* Send Ack */
-                USISRL = 0x00;
-                /* Bit counter = 1, send (N)Ack bit */
-                USICNT |= 0x01;
-            }
-            else if (USISRL == (SLAVE_ADDRESS + 1))
-            {
-                /* SDA = output */
-                USICTL0 |= USIOE;
-                /* Go to next state: TX data */
-                I2CState = I2C_RECE_ACK;
-                /* Send Ack */
-                USISRL = 0x00;
-                /* Bit counter = 1, send (N)Ack bit */
-                USICNT |= 0x01;
-            }
-            else
-            {
-                /* next state: prep for next Start */
-                I2CState = I2C_IDLE;
-                /* SCL release when the address is not own address */
-                USICNT |= USISCLREL;
-            }
-            break;
+	/* Start condition */
+	if (USICTL1 & USISTTIFG)
+	{
+		/* Bit counter = 8, RX address */
+		USICNT = (USICNT & 0xE0) + 0x08;
+		/* Clear start flag */
+		USICTL1 &= ~USISTTIFG;
+		/* Go to next state: check address */
+		I2CState = I2C_RECE_ADDR;
+	}
+	/* Counter interrupt flag */
+	else if (USICTL1 & USIIFG)
+	{
+		switch (I2CState)
+		{
+			case I2C_RECE_ADDR:
+				/* Address match */
+				if (USISRL == SLAVE_ADDRESS)
+				{
+					/* SDA = output */
+					USICTL0 |= USIOE;
+					/* Go to next state: RX data */
+					I2CState = I2C_SEND_RX_ACK;
+					/* Send Ack */
+					USISRL = 0x00;
+					/* Bit counter = 1, send (N)Ack bit */
+					USICNT |= 0x01;
+				}
+				else if (USISRL == (SLAVE_ADDRESS + 1))
+				{
+					/* SDA = output */
+					USICTL0 |= USIOE;
+					/* Go to next state: TX data */
+					I2CState = I2C_RECE_ACK;
+					/* Send Ack */
+					USISRL = 0x00;
+					/* Bit counter = 1, send (N)Ack bit */
+					USICNT |= 0x01;
+				}
+				else
+				{
+					/* next state: prep for next Start */
+					I2CState = I2C_IDLE;
+					/* SCL release when the address is not own address */
+					USICNT |= USISCLREL;
+				}
+				break;
 
-        case I2C_RECE_DATA:
-            /* Receive data of register */
-            if (I2CRegister)
-            {
-//              if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_RST_COUNT) || (I2CRegister == REG_PRE_TIME))
-                if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_PRE_TIME) || (I2CRegister == REG_CMD))
-                {
-                    i2c_data_count++;
+			case I2C_RECE_DATA:
+				/* Receive data of register */
+				if (I2CRegister)
+				{
+//					if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_RST_COUNT) || (I2CRegister == REG_PRE_TIME))
+					if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_PRE_TIME) || (I2CRegister == REG_CMD))
+					{
+						i2c_data_count++;
 
-                    if (i2c_data_count < 3)
-                    {
-                        *pI2Cdata++ = USISRL;
-                    }
-                    if (i2c_data_count == 4)
-                    {
-                        I2CProceed();
-                        i2c_data_count = 0;
-                    }
-                }
-            }
-            else
-            {
-                I2CRegister = USISRL;
-                if (I2CRegister == REG_TIME_OUT)
-                {
-                    pI2Cdata = I2CResetTimeOut;
-                }
-//              else if (I2CRegister == REG_RST_COUNT)
-//              {
-//                  pI2Cdata = I2CResetCount;
-//              }
-                else if (I2CRegister == REG_PRE_TIME)
-                {
-                    pI2Cdata = I2CPreTime;
-                }
-                else if (I2CRegister == REG_TIME_REMAIN)
-                {
-                    pI2Cdata = I2CResetTimeOutRemain;
-                }
-                else if (I2CRegister == REG_PRE_REMAIN)
-                {
-                    pI2Cdata = I2CPreTimeRemain;
-                }
-                else if (I2CRegister == REG_FW_VERSION)
-                {
-                    pI2Cdata = (unsigned char *)FWVersion;
-                }
-                else if (I2CRegister == REG_PWR_MODE)
-                {
-                    pI2Cdata = I2CPowerMode;
-                }
-                else if (I2CRegister == REG_CMD)
-                {
-                    pI2Cdata = I2CPowerMode;
-                }
-            }
-            /* SDA = output */
-            USICTL0 |= USIOE;
-            /* Send Ack */
-            USISRL = 0x00;
-            /* Rcv another byte */
-            I2CState = I2C_SEND_RX_ACK;
-            /* Bit counter = 1, send (N)Ack bit */
-            USICNT |= 0x01;
-            break;
+						if (i2c_data_count < 3)
+						{
+							*pI2Cdata++ = USISRL;
+						}
+						if (i2c_data_count == 4)
+						{
+							I2CProceed();
+							i2c_data_count = 0;
+						}
+					}
+				}
+				else
+				{
+					I2CRegister = USISRL;
+					if (I2CRegister == REG_TIME_OUT)
+					{
+						pI2Cdata = I2CResetTimeOut;
+					}
+//					else if (I2CRegister == REG_RST_COUNT)
+//					{
+//						pI2Cdata = I2CResetCount;
+//					}
+					else if (I2CRegister == REG_PRE_TIME)
+					{
+						pI2Cdata = I2CPreTime;
+					}
+					else if (I2CRegister == REG_TIME_REMAIN)
+					{
+						pI2Cdata = I2CResetTimeOutRemain;
+					}
+					else if (I2CRegister == REG_PRE_REMAIN)
+					{
+						pI2Cdata = I2CPreTimeRemain;
+					}
+					else if (I2CRegister == REG_FW_VERSION)
+					{
+						pI2Cdata = (unsigned char *)FWVersion;
+					}
+					else if (I2CRegister == REG_PWR_MODE)
+					{
+						pI2Cdata = I2CPowerMode;
+					}
+					else if (I2CRegister == REG_CMD)
+					{
+						pI2Cdata = I2CPowerMode;
+					}
+				}
+				/* SDA = output */
+				USICTL0 |= USIOE;
+				/* Send Ack */
+				USISRL = 0x00;
+				/* Rcv another byte */
+				I2CState = I2C_SEND_RX_ACK;
+				/* Bit counter = 1, send (N)Ack bit */
+				USICNT |= 0x01;
+				break;
 
-        case I2C_SEND_RX_ACK:
-            /* SDA = input */
-            USICTL0 &= ~USIOE;
-            /* Bit counter = 8, RX data */
-            USICNT |=  0x08;
-            /* next state: Test data and (N)Ack */
-            I2CState = I2C_RECE_DATA;
-            break;
+			case I2C_SEND_RX_ACK:
+				/* SDA = input */
+				USICTL0 &= ~USIOE;
+				/* Bit counter = 8, RX data */
+				USICNT |=  0x08;
+				/* next state: Test data and (N)Ack */
+				I2CState = I2C_RECE_DATA;
+				break;
 
-        case I2C_SEND_DATA:
-            /* SDA = input */
-            USICTL0 &= ~USIOE;
-            /* Bit counter = 1, receive (N)Ack */
-            USICNT |= 0x01;
-            /* Go to next state: check (N)Ack */
-            I2CState = I2C_RECE_ACK;
-            break;
-        case I2C_RECE_ACK:
-            if(USISRL & 0x01)
-                I2CProceed();
-            else
-            {
-                /* SDA = output */
-                USICTL0 |= USIOE;
-                if (*pI2Cdata == 0xFF)
-                {
-                    USISRL = *pI2Cdata;
-                }
-                else
-                {
-                    USISRL = *pI2Cdata++;
-                }
-                /* Bit counter = 8, TX data */
-                USICNT |= 0x08;
-                /* Go to next state: receive (N)Ack */
-                I2CState = I2C_SEND_DATA;
-            }
-            break;
+			case I2C_SEND_DATA:
+				/* SDA = input */
+				USICTL0 &= ~USIOE;
+				/* Bit counter = 1, receive (N)Ack */
+				USICNT |= 0x01;
+				/* Go to next state: check (N)Ack */
+				I2CState = I2C_RECE_ACK;
+				break;
+			case I2C_RECE_ACK:
+				if(USISRL & 0x01)
+					I2CProceed();
+				else
+				{
+					/* SDA = output */
+					USICTL0 |= USIOE;
+					if (*pI2Cdata == 0xFF)
+					{
+						USISRL = *pI2Cdata;
+					}
+					else
+					{
+						USISRL = *pI2Cdata++;
+					}
+					/* Bit counter = 8, TX data */
+					USICNT |= 0x08;
+					/* Go to next state: receive (N)Ack */
+					I2CState = I2C_SEND_DATA;
+				}
+				break;
 
-        case I2C_IDLE:
-        default:
-            break;
-        }
-        /* Clear pending flags */
-    }
-    USICTL1 &= ~USIIFG;
+			case I2C_IDLE:
+			default:
+				break;
+		}
+	/* Clear pending flags */
+	}
+	USICTL1 &= ~USIIFG;
 }
 
