@@ -140,7 +140,7 @@ all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 G2302_for_rc03_20210315.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: MSP430 Linker'
-	"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/bin/cl430" -vmsp --use_hw_mpy=none --advice:power=all --define=__MSP430G2302__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"G2302_for_rc03_20210315.map" --heap_size=80 --stack_size=80 -i"D:/CCS9.1/install/ccs/ccs_base/msp430/include" -i"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/lib" -i"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="G2302_for_rc03_20210315_linkInfo.xml" --use_hw_mpy=none --rom_model -o "G2302_for_rc03_20210315.out" $(ORDERED_OBJS)
+	"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/bin/cl430" -vmsp -Ooff --use_hw_mpy=none --advice:power="all" --define=__MSP430G2302__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"G2302_for_rc03_20210315.map" --heap_size=80 --stack_size=80 -i"D:/CCS9.1/install/ccs/ccs_base/msp430/include" -i"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/lib" -i"D:/CCS9.1/install/ccs/tools/compiler/ti-cgt-msp430_18.12.2.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="G2302_for_rc03_20210315_linkInfo.xml" --use_hw_mpy=none --rom_model -o "G2302_for_rc03_20210315.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 

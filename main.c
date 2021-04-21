@@ -256,7 +256,7 @@ unsigned int CalibrateVLO(void)
 
 #ifdef VLO_CAL_LPM0
 	/* Enter LPM0 */
-	__low_power_mode_0();
+	//__low_power_mode_0();
 	/* For debugger */
 	__no_operation();
 #else
@@ -270,7 +270,7 @@ unsigned int CalibrateVLO(void)
 
 #ifdef VLO_CAL_LPM0
 	/* Enter LPM0 */
-	__low_power_mode_0();
+	//__low_power_mode_0();
 	/* For debugger */
 	__no_operation();
 #else
@@ -364,7 +364,7 @@ void IOInit(void)
 	LED_PORT_DIR |= LED_PORT_PIN;
 
 	P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
-
+	P1REN |= POWEREN_PORT_PIN ;
 
 	/* Set MODE as input pin with internal pull-up (ATX mode) */
 	MODE_PORT_SEL &= ~MODE_PORT_PIN;
@@ -461,11 +461,13 @@ unsigned char ResetInDetect(void)
 			if(ResetInCount < 1000)
 				ResetInCount++;
 			if(ResetInCount >= 1000)
+			//else
 			{				
 				POWEREN_INACTIVE;
 				delay_ms(1000);
 				I2CCmd[0] = 0;
 				POWEREN_ACTIVE;
+				ResetInCount = 0;
 				return 1;
 			}
 		}
@@ -506,6 +508,8 @@ void MinTimerDisabled(void)
 
 void MinTimerEnable(void)
 {
+    CountOneMin = 0;
+    TimerCount = 0;
 	TimerMinFlag = 1;
 }
 
@@ -519,6 +523,8 @@ void HalfSecTimerDisabled(void)
 
 void HalfSecTimerEnable(void)
 {
+    CountHalfSec = 0;
+    TimerCount = 0;
 	TimerHalfSecFlag = 1;
 }
 /*
@@ -685,10 +691,12 @@ void main(void)
 	pI2Cdata = (unsigned char *)&NullData;
 
 	/* Start Watchdog */
-	WDTCTL = WDT_ARST_250;
+	//WDTCTL = WDT_ARST_250;
 
 	/* Global Interrupt Enable */
 	__enable_interrupt();
+	unsigned char tmp;
+
 
 	while (1)
 	{
@@ -742,6 +750,32 @@ void main(void)
 		}
 		I2CPowerMode[1] = 0xFF;
 
+		tmp = I2CCmd[0];
+
+#if 0
+		while(1)
+		{
+		    POWEREN_INACTIVE;
+		    delay_ms(6000);
+		    POWEREN_ACTIVE;
+		    delay_ms(6000);
+
+		}
+#endif
+#if 0
+		while(1)
+		{
+		    if(tmp != I2CCmd[0])
+		    {
+		        tmp = I2CCmd[0];
+		        if(I2CCmd[0] == 1)
+		            Led_twinkle(2);
+		        else if(I2CCmd[0] == 2)
+		            Led_twinkle(1);
+		    }
+		}
+	    //while(1);
+#endif
 loop:
 		Led_Disabled_twinkle();
 				
@@ -751,13 +785,18 @@ loop:
 				goto loop;
 		}
 	
-		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) == 1)
+		//tmp = WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN;
+		MinTimerEnable();
+		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) != 0)
 		{
 			if(ResetInDetect())
 				goto loop;
 			
 			if(ResetCount > 3)
+			{
+			    POWEREN_INACTIVE;
 				while(1);
+			}
 
 			if(ResetFlag == 1)
 			{
@@ -799,6 +838,7 @@ loop:
 		}
 
 		/* wait for watchdog enable */
+		//tmp = WDT_PORT_IN & WDT_PORT_PIN;
 		while ((WDT_PORT_IN & WDT_PORT_PIN) == 0)
 		{
 			if(ResetInDetect())
@@ -809,7 +849,7 @@ loop:
 			__no_operation();
 
 			/* Refresh Watchdog */
- 			WDTCTL = WDT_ARST_250;
+ 			//WDTCTL = WDT_ARST_250;
 
 //			I2CProceed();
 		}
@@ -842,7 +882,7 @@ loop:
 			__no_operation();
 
 			/* Refresh Watchdog */
-			WDTCTL = WDT_ARST_250;
+			//WDTCTL = WDT_ARST_250;
 
 //			I2CProceed();
 
@@ -1201,7 +1241,7 @@ __interrupt void USI_I2C_ISR(void)
 					}
 					else if (I2CRegister == REG_CMD)
 					{
-						pI2Cdata = I2CPowerMode;
+						pI2Cdata = I2CCmd;
 					}
 				}
 				/* SDA = output */
