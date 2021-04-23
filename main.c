@@ -71,7 +71,8 @@
 #define REG_PRE_REMAIN      0x26
 #define REG_FW_VERSION      0x27
 #define REG_PWR_MODE        0x28
-#define REG_CMD        0x30
+#define REG_CMD             0x30
+#define REG_RESET_TIMES     0x31
 
 /* Power Button Mode: bit 0: 0-> AT mode, 1-> ATX mode */
 #define PWR_BUTTON_MODE 0x00
@@ -198,6 +199,8 @@ unsigned char TimerHalfSecFlag;
 unsigned int CountHalfSec;
 unsigned int TimerCount;
 unsigned char LedCycle;
+//unsigned char Twinkle_times;
+//unsigned char Twinkle_times_Count;
 //unsigned char LedTimes;
 unsigned char LedFlag;
 unsigned char LedCount;
@@ -218,6 +221,7 @@ unsigned char I2CPreTime[3];
 unsigned char I2CPreTimeRemain[3];
 unsigned char I2CResetTimeOutRemain[3];
 unsigned char I2CCmd[3];
+unsigned char I2CResetTimes[3];
 
 /* NULL data for I2C */
 const unsigned char NullData = 0xFF;
@@ -226,7 +230,7 @@ const unsigned char NullData = 0xFF;
 const unsigned char FWVersion[] =
 {
     0x31,
-    0x37,
+    0x30,
     0xFF
 };
 
@@ -364,7 +368,7 @@ void IOInit(void)
 	LED_PORT_DIR |= LED_PORT_PIN;
 
 	P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
-	P1REN |= POWEREN_PORT_PIN ;
+	P1REN |= POWEREN_PORT_PIN | LED_PORT_PIN;
 
 	/* Set MODE as input pin with internal pull-up (ATX mode) */
 	MODE_PORT_SEL &= ~MODE_PORT_PIN;
@@ -480,6 +484,18 @@ unsigned char ResetInDetect(void)
 /*
 * LED
 */
+
+#if 0
+void Led_twinkle_times(unsigned char Cycle, unsigned char times)
+{
+    Twinkle_times = times;
+    Twinkle_times_Count = 0;
+    LedCycle = Cycle;
+    LedCount = 0;
+    LedFlag = 1;
+    LED_TOGGLE;
+}
+#endif
 
 void Led_twinkle(unsigned char Cycle)
 {
@@ -695,7 +711,6 @@ void main(void)
 
 	/* Global Interrupt Enable */
 	__enable_interrupt();
-	unsigned char tmp;
 
 
 	while (1)
@@ -710,6 +725,9 @@ void main(void)
 		I2CCmd[0] = 0;
 		I2CCmd[1] = 0;
 		I2CCmd[2] = 0;
+		I2CResetTimes[0] = 0;
+		I2CResetTimes[1] = 0;
+		I2CResetTimes[2] = 0;
 //		ActiveResetCount = RST_COUNT;
 //		I2CResetCount[0] = RST_COUNT;
 //		I2CResetCount[1] = 0xFF;
@@ -735,6 +753,7 @@ void main(void)
 
 		MinTimerDisabled();
 		HalfSecTimerDisabled();
+		//Twinkle_times = 0;
 		Led_Disabled_twinkle();
 
 		WaitInfoATimeOut = 0;
@@ -750,32 +769,6 @@ void main(void)
 		}
 		I2CPowerMode[1] = 0xFF;
 
-		tmp = I2CCmd[0];
-
-#if 0
-		while(1)
-		{
-		    POWEREN_INACTIVE;
-		    delay_ms(6000);
-		    POWEREN_ACTIVE;
-		    delay_ms(6000);
-
-		}
-#endif
-#if 0
-		while(1)
-		{
-		    if(tmp != I2CCmd[0])
-		    {
-		        tmp = I2CCmd[0];
-		        if(I2CCmd[0] == 1)
-		            Led_twinkle(2);
-		        else if(I2CCmd[0] == 2)
-		            Led_twinkle(1);
-		    }
-		}
-	    //while(1);
-#endif
 loop:
 		Led_Disabled_twinkle();
 				
@@ -785,7 +778,6 @@ loop:
 				goto loop;
 		}
 	
-		//tmp = WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN;
 		MinTimerEnable();
 		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) != 0)
 		{
@@ -821,6 +813,7 @@ loop:
 				MinTimerDisabled();
 				WaitInfoATimeOut = 1;
 				ResetCount++;
+				I2CResetTimes[0] = ResetCount;
 				POWEREN_INACTIVE;
 				HalfSecTimerEnable();
 			}
@@ -1008,7 +1001,8 @@ loop:
 
 							/* Set WDITrigger */
 							WDITrigger = 1;
-							Led_twinkle(1);
+							if(LedCycle != 1)
+							    Led_twinkle(1);
 						}
 						else
 						{
@@ -1058,6 +1052,7 @@ loop:
 
 									/* Increase Reset Pulse Count */
 									ResetCount++;
+									I2CResetTimes[0] = ResetCount;
 
 									/* Re-set count down time when WDI trigger evenet is occured */
 									ResetCountDown = RST_TIME_OUT_P - 1;
@@ -1106,6 +1101,17 @@ __interrupt void Timer0_A0(void)
 		{
 			LedCount = 0;
 			LED_TOGGLE;
+
+#if 0
+	        if(Twinkle_times > 0)
+	            Twinkle_times_Count++;
+
+	        if( Twinkle_times_Count == (Twinkle_times * 2))
+	        {
+	            Twinkle_times = 0;
+	            Led_Disabled_twinkle();
+	        }
+#endif
 		}
 	}
 
@@ -1193,7 +1199,7 @@ __interrupt void USI_I2C_ISR(void)
 				if (I2CRegister)
 				{
 //					if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_RST_COUNT) || (I2CRegister == REG_PRE_TIME))
-					if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_PRE_TIME) || (I2CRegister == REG_CMD))
+					if ((I2CRegister == REG_TIME_OUT) || (I2CRegister == REG_PRE_TIME) || (I2CRegister == REG_CMD) || (I2CRegister == REG_RESET_TIMES))
 					{
 						i2c_data_count++;
 
@@ -1243,6 +1249,10 @@ __interrupt void USI_I2C_ISR(void)
 					{
 						pI2Cdata = I2CCmd;
 					}
+                    else if (I2CRegister == REG_RESET_TIMES)
+                    {
+                        pI2Cdata = I2CResetTimes;
+                    }
 				}
 				/* SDA = output */
 				USICTL0 |= USIOE;
