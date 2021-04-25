@@ -229,8 +229,8 @@ const unsigned char NullData = 0xFF;
 /* FW version: 1.7 */
 const unsigned char FWVersion[] =
 {
-    0x31,
     0x30,
+    0x39,
     0xFF
 };
 
@@ -778,6 +778,7 @@ loop:
 				goto loop;
 		}
 	
+		//开启等待2h计时器
 		MinTimerEnable();
 		while((WDTEN_HW_PORT_IN & WDTEN_HW_PORT_PIN) != 0)
 		{
@@ -786,6 +787,7 @@ loop:
 			
 			if(ResetCount > 3)
 			{
+			    LED_INACTIVE;
 			    POWEREN_INACTIVE;
 				while(1);
 			}
@@ -808,6 +810,7 @@ loop:
 				break;
 			}
 
+			//等待超过2h
 			if(CountOneMin >= 120)
 			{
 				MinTimerDisabled();
@@ -818,6 +821,7 @@ loop:
 				HalfSecTimerEnable();
 			}
 
+			//超过2h reset计时
 			if(WaitInfoATimeOut == 1)
 			{
 				if(CountHalfSec >= 3)
