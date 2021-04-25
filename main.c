@@ -354,6 +354,8 @@ void IOInit(void)
 	P2OUT &= ~(BIT7);
 	P2DIR |= BIT7;
 
+    POWEREN_INACTIVE;
+    LED_ACTIVE;
 	/* Set WDI as input pin */
 	WDI_PORT_DIR &= ~WDI_PORT_PIN;
 	/* Set WDT as input pin */
@@ -369,8 +371,7 @@ void IOInit(void)
 
 	P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
 	P1REN |= POWEREN_PORT_PIN | LED_PORT_PIN;
-	POWEREN_ACTIVE;
-	LED_ACTIVE;
+
 
 	/* Set MODE as input pin with internal pull-up (ATX mode) */
 	MODE_PORT_SEL &= ~MODE_PORT_PIN;
@@ -677,9 +678,6 @@ void main(void)
 	/* Stop watchdog timer */
 	WDTCTL = WDTPW | WDTHOLD;
 
-	/* I/O pin initialization */
-	IOInit();
-
 	/* Set DCO to 1MHz */
 	SetDCO(DCO_1MHZ);
 
@@ -693,6 +691,10 @@ void main(void)
 
 	/* Set DCO to 16MHz */
 	SetDCO(DCO_16MHZ);
+	__delay_cycles(5000);
+
+    /* I/O pin initialization */
+    IOInit();
 
 	/* delay a while for DCO stable */
 	//  __delay_cycles(5000);
@@ -771,6 +773,7 @@ void main(void)
 		}
 		I2CPowerMode[1] = 0xFF;
 
+		POWEREN_ACTIVE;
 loop:
 		Led_Disabled_twinkle();
 				
