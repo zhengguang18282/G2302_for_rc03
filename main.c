@@ -369,6 +369,8 @@ void IOInit(void)
 
 	P1REN &= ~(WDI_PORT_PIN | WDT_PORT_PIN |RESETIN_PORT_PIN |WDTEN_HW_PORT_PIN );
 	P1REN |= POWEREN_PORT_PIN | LED_PORT_PIN;
+	POWEREN_ACTIVE;
+	LED_ACTIVE;
 
 	/* Set MODE as input pin with internal pull-up (ATX mode) */
 	MODE_PORT_SEL &= ~MODE_PORT_PIN;
