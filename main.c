@@ -691,7 +691,7 @@ void main(void)
 
 	/* Set DCO to 16MHz */
 	SetDCO(DCO_16MHZ);
-	__delay_cycles(5000);
+	__delay_cycles(32000);
 
     /* I/O pin initialization */
     IOInit();
